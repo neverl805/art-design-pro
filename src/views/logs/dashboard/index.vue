@@ -20,6 +20,13 @@
         <div class="source-line">
           <span>{{ overviewStats?.source.indexed_logs.toLocaleString() || 0 }} 条已索引</span>
           <span>{{ overviewStats?.source.source_files || 0 }} 个日志源</span>
+          <span v-if="overviewStats">保留 {{ overviewStats.source.retention_days }} 天</span>
+          <span v-if="overviewStats"
+            >索引 {{ formatBytes(overviewStats.source.database_bytes) }}</span
+          >
+          <span v-if="overviewStats"
+            >源日志 {{ formatBytes(overviewStats.source.source_bytes) }}</span
+          >
           <span v-if="lastUpdateTime">更新于 {{ lastUpdateTime }}</span>
         </div>
       </div>
@@ -27,6 +34,11 @@
       <div class="toolbar-actions">
         <ElSegmented v-model="windowHours" :options="windowOptions" size="small" />
         <ElSwitch v-model="autoRefresh" active-text="自动刷新" />
+        <ElTooltip content="清理日志缓存" placement="bottom">
+          <ElButton circle plain type="danger" :loading="cleaning" @click="handleCleanup">
+            <Icon icon="ri:delete-bin-6-line" />
+          </ElButton>
+        </ElTooltip>
         <ElTooltip content="同步日志" placement="bottom">
           <ElButton circle :loading="syncing" @click="handleSync">
             <Icon icon="ri:database-2-line" />
@@ -80,7 +92,8 @@
 </template>
 
 <script setup lang="ts">
-  import { fetchFingerprintClusters, fetchLogOverview, syncLogs } from '@/api/logs'
+  import { ElMessageBox } from 'element-plus'
+  import { cleanupLogCache, fetchFingerprintClusters, fetchLogOverview, syncLogs } from '@/api/logs'
   import Icon from '@/components/core/base/art-svg-icon/index.vue'
   import StatsCards from './modules/stats-cards.vue'
   import LevelChart from './modules/level-chart.vue'
@@ -96,6 +109,7 @@
   const clusterStats = ref<Api.Logs.FingerprintClusterResponse | null>(null)
   const loading = ref(false)
   const syncing = ref(false)
+  const cleaning = ref(false)
   const clusterLoading = ref(false)
   const autoRefresh = ref(true)
   const windowHours = ref(24)
@@ -108,6 +122,11 @@
   ]
 
   const serviceOnline = computed(() => overviewStats.value?.service.online === true)
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  }
 
   const loadOverview = async (notify = false) => {
     loading.value = true
@@ -156,6 +175,39 @@
       ElMessage.error('同步日志失败')
     } finally {
       syncing.value = false
+    }
+  }
+
+  const handleCleanup = async () => {
+    try {
+      await ElMessageBox.confirm(
+        '将清空监控索引并回收数据库空间，hCaptcha 原始日志和 token 数据仍会保留。',
+        '清理日志缓存',
+        {
+          confirmButtonText: '清理',
+          cancelButtonText: '取消',
+          confirmButtonClass: 'el-button--danger',
+          type: 'warning'
+        }
+      )
+    } catch {
+      return
+    }
+
+    cleaning.value = true
+    pause()
+    try {
+      const result = await cleanupLogCache()
+      await loadOverview()
+      ElMessage.success(
+        `已清理 ${result.deleted_total.toLocaleString()} 条索引数据，释放 ${formatBytes(result.reclaimed_bytes)}`
+      )
+    } catch (error) {
+      console.error('清理日志缓存失败:', error)
+      ElMessage.error('清理日志缓存失败')
+    } finally {
+      cleaning.value = false
+      if (autoRefresh.value && pageActive.value) resume()
     }
   }
 

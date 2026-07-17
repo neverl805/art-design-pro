@@ -329,6 +329,9 @@ declare namespace Api {
       source_files: number
       indexed_logs: number
       parse_failures: number
+      retention_days: number
+      source_bytes: number
+      database_bytes: number
       latest_log_at: string | null
       last_sync_at: string | null
     }
@@ -356,8 +359,21 @@ declare namespace Api {
       parse_failures: number
       source_files: number
       pruned: number
+      pruned_sources: number
       interrupted: number
       synced_at: string
+    }
+
+    interface CleanupResponse {
+      deleted_logs: number
+      deleted_requests: number
+      deleted_spans: number
+      deleted_total: number
+      source_records_preserved: number
+      database_bytes_before: number
+      database_bytes_after: number
+      reclaimed_bytes: number
+      cleaned_at: string
     }
 
     interface FingerprintCluster {

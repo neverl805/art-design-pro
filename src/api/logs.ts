@@ -57,3 +57,13 @@ export function syncLogs() {
     url: '/api/logs/sync'
   })
 }
+
+/**
+ * 清空监控索引并回收 SQLite 空间，保留原始日志
+ */
+export function cleanupLogCache() {
+  return request.post<Api.Logs.CleanupResponse>({
+    url: '/api/logs/cleanup',
+    data: { confirm: true }
+  })
+}
