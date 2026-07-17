@@ -3,9 +3,20 @@
     <template #header>
       <div class="panel-header">
         <span class="panel-title">Token 配额</span>
-        <ElTag :type="stats.token_usage.available ? 'success' : 'info'" size="small" effect="plain">
-          {{ stats.token_usage.available ? '已连接' : '未连接' }}
-        </ElTag>
+        <div class="panel-actions">
+          <ElTag
+            :type="stats.token_usage.available ? 'success' : 'info'"
+            size="small"
+            effect="plain"
+          >
+            {{ stats.token_usage.available ? '已连接' : '未连接' }}
+          </ElTag>
+          <ElTooltip content="管理 Token" placement="top">
+            <ElButton link type="primary" @click="router.push('/logs/tokens')">
+              <Icon icon="ri:settings-3-line" />
+            </ElButton>
+          </ElTooltip>
+        </div>
       </div>
     </template>
     <ElTable
@@ -30,8 +41,11 @@
 </template>
 
 <script setup lang="ts">
+  import Icon from '@/components/core/base/art-svg-icon/index.vue'
+
   defineOptions({ name: 'TokenUsage' })
   defineProps<{ stats: Api.Logs.OverviewStats }>()
+  const router = useRouter()
 </script>
 
 <style scoped lang="scss">
@@ -48,5 +62,11 @@
   .panel-title {
     font-size: 14px;
     font-weight: 600;
+  }
+
+  .panel-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
   }
 </style>

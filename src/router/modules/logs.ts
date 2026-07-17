@@ -29,6 +29,15 @@ export const logsRoutes: AppRouteRecord = {
       }
     },
     {
+      path: 'tokens',
+      name: 'LogsTokens',
+      component: '/logs/tokens',
+      meta: {
+        title: 'Token 管理',
+        keepAlive: true
+      }
+    },
+    {
       path: 'detail/:requestId',
       name: 'LogsDetail',
       component: '/logs/detail',

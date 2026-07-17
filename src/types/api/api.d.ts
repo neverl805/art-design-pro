@@ -323,6 +323,40 @@ declare namespace Api {
       tokens: TokenState[]
     }
 
+    interface TokenRecord {
+      token_id: string
+      token_hint: string
+      remaining: number
+      used: number
+      pending: number
+      enabled: boolean
+      expires_at: number | null
+      created_at: number
+      updated_at: number
+    }
+
+    interface TokenRecordList {
+      total: number
+      remaining: number
+      used: number
+      pending: number
+      tokens: TokenRecord[]
+    }
+
+    interface TokenCreatePayload {
+      token: string
+      remaining: number
+      enabled: boolean
+      expires_at: number | null
+    }
+
+    interface TokenUpdatePayload {
+      remaining?: number
+      used?: number
+      enabled?: boolean
+      expires_at?: number | null
+    }
+
     interface SourceStatus {
       log_dir: string
       database_path: string

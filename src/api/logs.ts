@@ -67,3 +67,42 @@ export function cleanupLogCache() {
     data: { confirm: true }
   })
 }
+
+/**
+ * 读取 hCaptcha SQLite 中的实时 Token 账本
+ */
+export function fetchTokenRecords() {
+  return request.get<Api.Logs.TokenRecordList>({
+    url: '/api/logs/tokens'
+  })
+}
+
+/**
+ * 新增 Token；相同 Token 会重置可用次数和状态
+ */
+export function createTokenRecord(payload: Api.Logs.TokenCreatePayload) {
+  return request.post<Api.Logs.TokenRecord>({
+    url: '/api/logs/tokens',
+    data: payload
+  })
+}
+
+/**
+ * 按摘要 ID 更新 Token 账本字段
+ */
+export function updateTokenRecord(tokenId: string, payload: Api.Logs.TokenUpdatePayload) {
+  return request.request<Api.Logs.TokenRecord>({
+    url: `/api/logs/tokens/${tokenId}`,
+    method: 'PATCH',
+    data: payload
+  })
+}
+
+/**
+ * 删除 Token 及其已结算的预留历史
+ */
+export function deleteTokenRecord(tokenId: string) {
+  return request.del<Api.Logs.TokenRecord>({
+    url: `/api/logs/tokens/${tokenId}`
+  })
+}
