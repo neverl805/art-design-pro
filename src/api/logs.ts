@@ -4,9 +4,10 @@ import request from '@/utils/http'
  * 获取日志总览统计
  * @returns 统计数据
  */
-export function fetchLogOverview() {
+export function fetchLogOverview(hours = 24) {
   return request.get<Api.Logs.OverviewStats>({
-    url: '/api/logs/overview'
+    url: '/api/logs/overview',
+    params: { hours }
   })
 }
 
@@ -33,14 +34,26 @@ export function fetchLogDetail(requestId: string) {
   })
 }
 
+export function fetchFingerprintClusters(
+  hours = 24,
+  dimensions = ['profile_variant', 'proxy_country', 'hcaptcha_version'],
+  minSamples = 1
+) {
+  return request.get<Api.Logs.FingerprintClusterResponse>({
+    url: '/api/logs/fingerprint-clusters',
+    params: {
+      hours,
+      dimensions: dimensions.join(','),
+      min_samples: minSamples
+    }
+  })
+}
+
 /**
- * 清除旧日志
- * @param days 保留最近N天的日志
- * @returns 删除结果
+ * 立即同步当前 hCaptcha 日志
  */
-export function cleanOldLogs(days: number) {
-  return request.del<Api.Logs.CleanLogsResponse>({
-    url: '/api/logs/clean',
-    params: { days }
+export function syncLogs() {
+  return request.post<Api.Logs.SyncResponse>({
+    url: '/api/logs/sync'
   })
 }

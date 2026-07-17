@@ -136,25 +136,87 @@ declare namespace Api {
   /** 日志管理类型 */
   namespace Logs {
     /** 日志级别 */
-    type LogLevel = 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL'
+    type LogLevel = 'DEBUG' | 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' | 'CRITICAL'
+    type RequestOutcome = 'success' | 'failure' | 'rejected' | 'in_progress' | 'completed' | 'other'
 
     /** 单条日志 */
     interface LogEntry {
       id: number
       ip: string
+      session_id: string
       timestamp: string
       request_id: string
       level: LogLevel
       module: string
       function: string
       line: number
+      event: string
       message: string
+      attributes: Record<string, unknown>
       raw_line: string
+    }
+
+    interface TraceSpan {
+      attempt: number
+      category: 'http' | 'sandbox' | 'phase'
+      sequence: number
+      name: string
+      start_ms: number | null
+      duration_ms: number
+      method: string | null
+      host: string | null
+      path: string | null
+      status: number | null
+      response_bytes: number | null
+      ok: boolean | null
+      engine_ms: number | null
+      peak_memory_bytes: number | null
+      details: Record<string, unknown>
+    }
+
+    interface TraceMetrics {
+      attempts: number
+      queue_wait_ms: number
+      total_ms: number
+      http_total_ms: number
+      sandbox_total_ms: number
+      sandbox_engine_total_ms: number
+      sandbox_peak_memory_bytes: number
+    }
+
+    interface FingerprintSnapshot {
+      fingerprint_key: string | null
+      profile_variant: string | null
+      profile_id: string | null
+      locale: string | null
+      timezone: string | null
+      hcaptcha_version: string | null
+      vmdata_length: number | null
+      vmdata_slots: number | null
+      n_length: number | null
+      request_type: string | null
+      task_count: number | null
+      proxy_scheme: string | null
+      proxy_host: string | null
+      proxy_port: number | null
+      proxy_endpoint: string | null
+      proxy_endpoint_key: string | null
+      proxy_session_mode: string | null
+      proxy_country: string | null
+      proxy_city: string | null
+      proxy_timezone: string | null
+      proxy_geo_source: string | null
+      proxy_exit_ip: string | null
+      proxy_asn: string | null
+      proxy_isp: string | null
+      locale_geo_match: boolean | null
+      timezone_geo_match: boolean | null
     }
 
     /** 日志组 */
     interface LogGroup {
       request_id: string
+      session_id: string
       count: number
       start_time: string
       end_time: string
@@ -162,49 +224,122 @@ declare namespace Api {
       levels: Record<string, number>
       ip: string
       has_error: boolean
+      outcome: RequestOutcome
+      method: string | null
+      path: string | null
+      http_status: number | null
+      target_host: string | null
+      attempts: number | null
+      upstream_requests: number | null
+      direct: boolean | null
+      token_hint: string | null
+      token_remaining: number | null
+      token_used: number | null
+      error: string | null
+      trace_metrics: TraceMetrics
+      fingerprint: FingerprintSnapshot
+      spans: TraceSpan[]
       logs: LogEntry[]
     }
 
     /** 日志搜索参数 */
     interface SearchParams {
       request_id?: string
+      outcome?: RequestOutcome
       level?: LogLevel
       ip?: string
       module?: string
+      target_host?: string
       start_time?: string
       end_time?: string
       keyword?: string
+      include_non_solve?: boolean
       page?: number
       page_size?: number
     }
 
     /** 日志总览统计 */
     interface OverviewStats {
-      total: number
-      error_count: number
-      warning_count: number
-      info_count: number
+      window_hours: number
+      solve_total: number
       success_count: number
-      debug_count: number
-      request_count: number
-      ip_count: number
+      failure_count: number
+      rejected_count: number
+      in_progress_count: number
+      success_rate: number
+      average_duration_ms: number
+      p95_duration_ms: number
+      direct_rate: number
+      upstream_request_count: number
+      log_total: number
       level_distribution: Record<string, number>
       timeline_data: TimelineData[]
-      ip_stats: IpStat[]
-      recent_logs: LogEntry[]
+      target_stats: TargetStat[]
+      client_stats: ClientStat[]
+      recent_requests: LogGroup[]
+      token_usage: TokenUsage
+      source: SourceStatus
+      service: ServiceStatus
     }
 
     /** 时间线数据 */
     interface TimelineData {
       time: string
       total: number
-      [key: string]: number | string
+      success: number
+      failure: number
+      rejected: number
     }
 
     /** IP统计 */
-    interface IpStat {
+    interface ClientStat {
       ip: string
       count: number
+    }
+
+    interface TargetStat {
+      host: string
+      total: number
+      success: number
+      failure: number
+      success_rate: number
+      average_duration_ms: number
+    }
+
+    interface TokenState {
+      token_hint: string
+      remaining: number
+      used: number
+      pending: number
+      enabled: boolean
+      expires_at: number | null
+    }
+
+    interface TokenUsage {
+      available: boolean
+      remaining: number
+      used: number
+      pending: number
+      tokens: TokenState[]
+    }
+
+    interface SourceStatus {
+      log_dir: string
+      database_path: string
+      source_files: number
+      indexed_logs: number
+      parse_failures: number
+      latest_log_at: string | null
+      last_sync_at: string | null
+    }
+
+    interface ServiceStatus {
+      online: boolean
+      url: string
+      checked_at: string
+      engine_available: boolean | null
+      metrics: Record<string, number>
+      error: string | null
     }
 
     /** 日志列表响应 */
@@ -215,10 +350,39 @@ declare namespace Api {
       data: LogGroup[]
     }
 
-    /** 清除日志响应 */
-    interface CleanLogsResponse {
-      deleted_count: number
-      message: string
+    interface SyncResponse {
+      imported: number
+      parsed: number
+      parse_failures: number
+      source_files: number
+      pruned: number
+      interrupted: number
+      synced_at: string
+    }
+
+    interface FingerprintCluster {
+      key: string
+      label: string
+      dimensions: Record<string, string | number | boolean | null>
+      total: number
+      terminal: number
+      success: number
+      failure: number
+      success_rate: number
+      direct_rate: number
+      average_duration_ms: number
+      p95_duration_ms: number
+      average_http_ms: number
+      average_sandbox_ms: number
+    }
+
+    interface FingerprintClusterResponse {
+      window_hours: number
+      group_by: string[]
+      sample_total: number
+      covered_samples: number
+      coverage_rate: number
+      clusters: FingerprintCluster[]
     }
   }
 }

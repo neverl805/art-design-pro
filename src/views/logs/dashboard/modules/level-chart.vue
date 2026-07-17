@@ -1,46 +1,44 @@
-<!-- 日志级别分布图表 -->
 <template>
-  <ElCard class="h-90" shadow="never">
+  <ElCard shadow="never" class="panel-card">
     <template #header>
-      <div class="card-header flex items-center justify-between">
-        <span class="font-semibold">日志级别分布</span>
-      </div>
+      <div class="panel-title">请求结果</div>
     </template>
     <ArtRingChart
-      v-if="chartData.length > 0"
+      v-if="stats.solve_total > 0"
       :data="chartData"
       :loading="loading"
-      height="300px"
+      :show-legend="true"
+      legend-position="right"
+      :center-text="`${stats.success_rate.toFixed(1)}%`"
+      height="280px"
     />
-    <ElEmpty v-else description="暂无数据" />
+    <ElEmpty v-else description="暂无请求" />
   </ElCard>
 </template>
 
 <script setup lang="ts">
-  defineOptions({ name: 'LevelChart' })
+  defineOptions({ name: 'OutcomeChart' })
 
-  interface Props {
-    stats: Api.Logs.OverviewStats | null
+  const props = defineProps<{
+    stats: Api.Logs.OverviewStats
     loading?: boolean
+  }>()
+
+  const chartData = computed(() => [
+    { name: '成功', value: props.stats.success_count, itemStyle: { color: '#16a36f' } },
+    { name: '失败', value: props.stats.failure_count, itemStyle: { color: '#dc4c4c' } },
+    { name: '拒绝', value: props.stats.rejected_count, itemStyle: { color: '#d49124' } },
+    { name: '进行中', value: props.stats.in_progress_count, itemStyle: { color: '#3b82c4' } }
+  ])
+</script>
+
+<style scoped lang="scss">
+  .panel-card {
+    min-height: 348px;
   }
 
-  const props = defineProps<Props>()
-
-  const chartData = computed(() => {
-    if (!props.stats?.level_distribution) return []
-
-    const levelColors: Record<string, string> = {
-      DEBUG: '#909399',
-      INFO: '#409eff',
-      WARNING: '#e6a23c',
-      ERROR: '#f56c6c',
-      CRITICAL: '#8b0000'
-    }
-
-    return Object.entries(props.stats.level_distribution).map(([level, count]) => ({
-      name: level,
-      value: count,
-      itemStyle: { color: levelColors[level] || '#909399' }
-    }))
-  })
-</script>
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+</style>

@@ -5,8 +5,8 @@ export const logsRoutes: AppRouteRecord = {
   path: '/logs',
   component: '/index/index',
   meta: {
-    title: '日志管理',
-    icon: 'ri:file-list-line',
+    title: 'hCaptcha 监控',
+    icon: 'ri:pulse-line',
     roles: ['R_SUPER', 'R_ADMIN']
   },
   children: [
@@ -15,7 +15,7 @@ export const logsRoutes: AppRouteRecord = {
       name: 'LogsDashboard',
       component: '/logs/dashboard',
       meta: {
-        title: '日志总览',
+        title: '服务总览',
         keepAlive: true
       }
     },
@@ -24,7 +24,7 @@ export const logsRoutes: AppRouteRecord = {
       name: 'LogsList',
       component: '/logs/list',
       meta: {
-        title: '日志列表',
+        title: '请求记录',
         keepAlive: true
       }
     },
@@ -33,10 +33,10 @@ export const logsRoutes: AppRouteRecord = {
       name: 'LogsDetail',
       component: '/logs/detail',
       meta: {
-        title: '日志详情',
+        title: '请求详情',
         keepAlive: false,
-        hideInMenu: true,
-        activeMenu: '/logs/list'
+        isHide: true,
+        activePath: '/logs/list'
       }
     }
   ]

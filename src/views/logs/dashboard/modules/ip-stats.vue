@@ -1,48 +1,56 @@
-<!-- IP访问统计 -->
 <template>
-  <ElCard class="h-90" shadow="never">
+  <ElCard shadow="never" class="panel-card">
     <template #header>
-      <div class="card-header flex items-center justify-between">
-        <span class="font-semibold">IP访问统计 Top10</span>
-      </div>
+      <div class="panel-title">目标 Host</div>
     </template>
-    <ArtHBarChart
-      v-if="xAxisData.length > 0"
-      :xAxisData="xAxisData"
-      :data="seriesData"
-      :loading="loading"
-      :colors="['#5470c6']"
-      height="300px"
-    />
-    <ElEmpty v-else description="暂无数据" />
+    <ElTable :data="stats.target_stats" height="280" size="small" empty-text="暂无目标数据">
+      <ElTableColumn prop="host" label="Host" min-width="190" show-overflow-tooltip />
+      <ElTableColumn prop="total" label="请求" width="68" align="right" />
+      <ElTableColumn label="成功率" width="90" align="right">
+        <template #default="{ row }">
+          <span :class="rateClass(row.success_rate)">{{ row.success_rate.toFixed(1) }}%</span>
+        </template>
+      </ElTableColumn>
+      <ElTableColumn label="平均耗时" width="100" align="right">
+        <template #default="{ row }">{{ formatDuration(row.average_duration_ms) }}</template>
+      </ElTableColumn>
+    </ElTable>
   </ElCard>
 </template>
 
 <script setup lang="ts">
-  defineOptions({ name: 'IpStats' })
+  defineOptions({ name: 'TargetStats' })
 
-  interface Props {
-    stats: Api.Logs.OverviewStats | null
+  defineProps<{
+    stats: Api.Logs.OverviewStats
     loading?: boolean
+  }>()
+
+  const formatDuration = (ms: number) =>
+    ms < 1000 ? `${ms.toFixed(0)} ms` : `${(ms / 1000).toFixed(1)} s`
+  const rateClass = (rate: number) =>
+    rate >= 80 ? 'rate-good' : rate >= 50 ? 'rate-warn' : 'rate-bad'
+</script>
+
+<style scoped lang="scss">
+  .panel-card {
+    min-height: 348px;
   }
 
-  const props = defineProps<Props>()
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
 
-  const xAxisData = computed(() => {
-    if (!props.stats?.ip_stats || props.stats.ip_stats.length === 0) {
-      return []
-    }
+  .rate-good {
+    color: #16835d;
+  }
 
-    const ipStats = props.stats.ip_stats.slice(0, 10)
-    return ipStats.map((item) => item.ip).reverse()
-  })
+  .rate-warn {
+    color: #b45309;
+  }
 
-  const seriesData = computed(() => {
-    if (!props.stats?.ip_stats || props.stats.ip_stats.length === 0) {
-      return []
-    }
-
-    const ipStats = props.stats.ip_stats.slice(0, 10)
-    return ipStats.map((item) => item.count).reverse()
-  })
-</script>
+  .rate-bad {
+    color: #c24141;
+  }
+</style>

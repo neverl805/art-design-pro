@@ -1,196 +1,163 @@
-<!-- 日志时间线组件 -->
 <template>
-  <ElCard shadow="never">
+  <ElCard shadow="never" class="timeline-card">
     <template #header>
-      <div class="flex items-center justify-between">
-        <span class="font-semibold">日志时间线</span>
-        <div class="flex items-center gap-2">
-          <ElButton
-            v-if="hasLongTexts"
-            link
-            type="primary"
-            size="small"
-            @click="toggleAllExpand"
-          >
-            {{ allExpanded ? '全部收起' : '全部展开' }}
-          </ElButton>
-        </div>
+      <div class="panel-header">
+        <span class="panel-title">事件时间线</span>
+        <span class="event-count">{{ logs.length }} 条</span>
       </div>
     </template>
-    <ElTimeline>
+    <ElTimeline class="event-timeline">
       <ElTimelineItem
         v-for="log in logs"
         :key="log.id"
-        :timestamp="log.timestamp"
-        :color="getTimelineColor(log.level)"
+        :timestamp="formatDate(log.timestamp)"
+        :color="timelineColor(log.level)"
         placement="top"
       >
-        <ElCard :body-style="{ padding: '16px' }" :class="`log-card log-${log.level.toLowerCase()}`">
-          <div class="flex items-center justify-between mb-2">
-            <div class="flex items-center gap-2">
-              <ElTag :type="getLevelType(log.level)" size="small">{{ log.level }}</ElTag>
-              <span class="text-sm text-gray-600">
-                {{ log.module }}.{{ log.function }}:{{ log.line }}
-              </span>
+        <div class="event-block" :class="`level-${log.level.toLowerCase()}`">
+          <div class="event-header">
+            <div class="event-meta">
+              <ElTag :type="levelType(log.level)" size="small" effect="plain">{{
+                log.level
+              }}</ElTag>
+              <code>{{ log.event }}</code>
+              <span>{{ log.module }}:{{ log.function }}:{{ log.line }}</span>
             </div>
-            <span class="text-xs text-gray-500">{{ log.ip }}</span>
-          </div>
-          <div class="log-message-wrapper">
-            <div
-              class="text-sm whitespace-pre-wrap transition-all duration-300"
-              :class="{ 'message-collapsed': !expandedLogs[log.id] && isLongText(log.message) }"
+            <ElButton
+              v-if="isLong(log.message)"
+              link
+              type="primary"
+              size="small"
+              @click="toggle(log.id)"
             >
-              {{ log.message }}
-            </div>
-            <div v-if="isLongText(log.message)" class="mt-2">
-              <ElButton
-                link
-                type="primary"
-                size="small"
-                @click="toggleExpand(log.id)"
-              >
-                {{ expandedLogs[log.id] ? '收起' : '查看全部' }}
-                <Icon
-                  :icon="expandedLogs[log.id] ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'"
-                  class="ml-1"
-                />
-              </ElButton>
-            </div>
+              {{ expanded[log.id] ? '收起' : '展开' }}
+            </ElButton>
           </div>
-        </ElCard>
+          <div
+            class="event-message"
+            :class="{ collapsed: isLong(log.message) && !expanded[log.id] }"
+          >
+            {{ log.message }}
+          </div>
+        </div>
       </ElTimelineItem>
     </ElTimeline>
   </ElCard>
 </template>
 
 <script setup lang="ts">
-  import Icon from '@/components/core/base/art-svg-icon/index.vue'
-
   defineOptions({ name: 'LogTimeline' })
 
-  interface Props {
-    logs: Api.Logs.LogEntry[]
+  defineProps<{ logs: Api.Logs.LogEntry[] }>()
+  const expanded = ref<Record<number, boolean>>({})
+  const isLong = (message: string) => message.length > 220
+  const formatDate = (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false })
+  const toggle = (id: number) => {
+    expanded.value[id] = !expanded.value[id]
   }
-
-  const props = defineProps<Props>()
-
-  // 长文本阈值（字符数）
-  const LONG_TEXT_THRESHOLD = 200
-
-  // 每个日志的展开状态
-  const expandedLogs = ref<Record<string, boolean>>({})
-
-  // 是否所有长文本都已展开
-  const allExpanded = computed(() => {
-    const longTextLogs = props.logs.filter((log) => isLongText(log.message))
-    if (longTextLogs.length === 0) return false
-    return longTextLogs.every((log) => expandedLogs.value[log.id])
-  })
-
-  // 是否存在长文本
-  const hasLongTexts = computed(() => {
-    return props.logs.some((log) => isLongText(log.message))
-  })
-
-  // 判断是否为长文本
-  const isLongText = (text: string): boolean => {
-    return text.length > LONG_TEXT_THRESHOLD
-  }
-
-  // 切换单个日志的展开状态
-  const toggleExpand = (logId: string) => {
-    expandedLogs.value[logId] = !expandedLogs.value[logId]
-  }
-
-  // 切换所有日志的展开状态
-  const toggleAllExpand = () => {
-    const newState = !allExpanded.value
-    props.logs.forEach((log) => {
-      if (isLongText(log.message)) {
-        expandedLogs.value[log.id] = newState
-      }
-    })
-  }
-
-  const getLevelType = (level: string) => {
-    const typeMap: Record<string, any> = {
-      DEBUG: 'info',
-      INFO: 'primary',
-      WARNING: 'warning',
+  const levelType = (level: Api.Logs.LogLevel) =>
+    ({
+      SUCCESS: 'success',
       ERROR: 'danger',
-      CRITICAL: 'danger'
-    }
-    return typeMap[level] || 'info'
-  }
-
-  const getTimelineColor = (level: string) => {
-    const colorMap: Record<string, string> = {
-      DEBUG: '#909399',
-      INFO: '#409eff',
-      WARNING: '#e6a23c',
-      ERROR: '#f56c6c',
-      CRITICAL: '#8b0000'
-    }
-    return colorMap[level] || '#909399'
-  }
+      CRITICAL: 'danger',
+      WARNING: 'warning',
+      INFO: 'primary',
+      DEBUG: 'info'
+    })[level] as 'success' | 'danger' | 'warning' | 'primary' | 'info'
+  const timelineColor = (level: Api.Logs.LogLevel) =>
+    ({
+      SUCCESS: '#16a36f',
+      ERROR: '#dc4c4c',
+      CRITICAL: '#a92f2f',
+      WARNING: '#d49124',
+      INFO: '#3b82c4',
+      DEBUG: '#71717a'
+    })[level]
 </script>
 
 <style scoped lang="scss">
-  .log-card {
-    border-left: 3px solid #dcdfe6;
-    transition: all 0.3s;
-
-    &:hover {
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    &.log-error,
-    &.log-critical {
-      border-left-color: #f56c6c;
-      background-color: #fef0f0;
-
-      // 暗色主题下的背景色
-      html.dark & {
-        background-color: #3a1515;
-        border-left-color: #f56c6c;
-      }
-    }
-
-    &.log-warning {
-      border-left-color: #e6a23c;
-      background-color: #fdf6ec;
-
-      // 暗色主题下的背景色
-      html.dark & {
-        background-color: #3a2a15;
-        border-left-color: #e6a23c;
-      }
-    }
-
-    &.log-info {
-      border-left-color: #409eff;
-    }
-
-    &.log-debug {
-      border-left-color: #909399;
-    }
+  .timeline-card {
+    height: 100%;
   }
 
-  .log-message-wrapper {
-    .message-collapsed {
-      max-height: 120px;
-      overflow: hidden;
-      position: relative;
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 40px;
-        background: linear-gradient(to bottom, transparent, var(--el-bg-color));
-      }
-    }
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .event-count {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  .event-timeline {
+    padding: 4px 2px 0;
+  }
+
+  .event-block {
+    padding: 11px 12px;
+    background: var(--el-bg-color);
+    border: 1px solid var(--el-border-color-lighter);
+    border-left: 3px solid #3b82c4;
+    border-radius: 4px;
+  }
+
+  .event-block.level-success {
+    border-left-color: #16a36f;
+  }
+
+  .event-block.level-warning {
+    border-left-color: #d49124;
+  }
+
+  .event-block.level-error,
+  .event-block.level-critical {
+    border-left-color: #dc4c4c;
+  }
+
+  .event-block.level-debug {
+    border-left-color: #71717a;
+  }
+
+  .event-header {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .event-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  .event-meta code {
+    color: var(--el-text-color-primary);
+  }
+
+  .event-message {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.55;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  .event-message.collapsed {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
   }
 </style>

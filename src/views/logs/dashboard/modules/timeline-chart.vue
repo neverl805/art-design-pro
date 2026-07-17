@@ -1,68 +1,48 @@
-<!-- 时间趋势图表 -->
 <template>
   <ElCard shadow="never">
     <template #header>
-      <div class="card-header flex items-center justify-between">
-        <span class="font-semibold">日志时间趋势</span>
-      </div>
+      <div class="panel-title">Solve 趋势</div>
     </template>
     <ArtLineChart
-      v-if="xAxisData.length > 0"
-      :xAxisData="xAxisData"
+      v-if="xAxisData.length"
+      :x-axis-data="xAxisData"
       :data="seriesData"
       :loading="loading"
-      :showLegend="true"
-      :showAreaColor="false"
+      :show-legend="true"
+      :show-area-color="false"
       :smooth="true"
-      :colors="['#f56c6c', '#e6a23c', '#409eff', '#909399']"
-      height="300px"
+      :colors="['#16a36f', '#dc4c4c', '#d49124']"
+      height="280px"
     />
-    <ElEmpty v-else description="暂无数据" />
+    <ElEmpty v-else description="暂无趋势数据" />
   </ElCard>
 </template>
 
 <script setup lang="ts">
-  defineOptions({ name: 'TimelineChart' })
+  defineOptions({ name: 'SolveTimelineChart' })
 
-  interface Props {
-    stats: Api.Logs.OverviewStats | null
+  const props = defineProps<{
+    stats: Api.Logs.OverviewStats
     loading?: boolean
-  }
+  }>()
 
-  const props = defineProps<Props>()
-
-  const xAxisData = computed(() => {
-    if (!props.stats?.timeline_data || props.stats.timeline_data.length === 0) {
-      return []
-    }
-
-    const timelineData = props.stats.timeline_data
-    return timelineData.map((item) => {
-      const date = new Date(item.time)
-      return `${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:00`
+  const xAxisData = computed(() =>
+    props.stats.timeline_data.map((item) => {
+      const date = new Date(item.time.replace(' ', 'T'))
+      return `${date.getMonth() + 1}-${date.getDate()} ${String(date.getHours()).padStart(2, '0')}:00`
     })
-  })
+  )
 
-  const seriesData = computed(() => {
-    if (!props.stats?.timeline_data || props.stats.timeline_data.length === 0) {
-      return []
-    }
-
-    const timelineData = props.stats.timeline_data
-    const levels = ['ERROR', 'WARNING', 'INFO', 'DEBUG']
-
-    return levels
-      .map((level) => {
-        const data = timelineData.map((item) => item[level] || 0)
-        // 如果该级别没有任何数据,则不显示
-        if (data.every((v) => v === 0)) return null
-
-        return {
-          name: level,
-          data,
-          smooth: true
-        }
-      })
-      .filter(Boolean) as Array<{ name: string; data: number[]; smooth: boolean }>
-  })
+  const seriesData = computed(() => [
+    { name: '成功', data: props.stats.timeline_data.map((item) => item.success), smooth: true },
+    { name: '失败', data: props.stats.timeline_data.map((item) => item.failure), smooth: true },
+    { name: '拒绝', data: props.stats.timeline_data.map((item) => item.rejected), smooth: true }
+  ])
 </script>
+
+<style scoped lang="scss">
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+</style>
