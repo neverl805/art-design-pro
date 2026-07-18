@@ -23,6 +23,7 @@
     <div v-if="logGroup" class="detail-grid">
       <aside><LogInfo :log-group="logGroup" /></aside>
       <main>
+        <FlowPayload :logs="logGroup.logs" />
         <ChainTiming :spans="logGroup.spans" :metrics="logGroup.trace_metrics" />
         <LogTimeline :logs="logGroup.logs" />
       </main>
@@ -35,6 +36,7 @@
   import { fetchLogDetail } from '@/api/logs'
   import Icon from '@/components/core/base/art-svg-icon/index.vue'
   import ChainTiming from './modules/chain-timing.vue'
+  import FlowPayload from './modules/flow-payload.vue'
   import LogInfo from './modules/log-info.vue'
   import LogTimeline from './modules/log-timeline.vue'
 

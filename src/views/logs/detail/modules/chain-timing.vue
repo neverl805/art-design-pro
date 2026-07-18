@@ -18,6 +18,14 @@
     </div>
 
     <ElTable :data="filteredSpans" size="small" empty-text="暂无结构化链路数据">
+      <ElTableColumn type="expand" width="42">
+        <template #default="{ row }">
+          <div class="span-details">
+            <div class="span-details-label">节点原始参数</div>
+            <pre>{{ formatDetails(row.details) }}</pre>
+          </div>
+        </template>
+      </ElTableColumn>
       <ElTableColumn prop="attempt" label="Attempt" width="76" align="center" />
       <ElTableColumn label="类型" width="82">
         <template #default="{ row }">
@@ -121,6 +129,7 @@
     if (!bytes) return '0 MB'
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`
   }
+  const formatDetails = (value: Record<string, unknown>) => JSON.stringify(value, null, 2)
   const waterfallStyle = (span: Api.Logs.TraceSpan) => {
     const start = span.start_ms || 0
     const left = Math.min(96, Math.max(0, (start / timelineTotal.value) * 100))
@@ -199,6 +208,30 @@
 
   .duration-value {
     font-size: 12px;
+  }
+
+  .span-details {
+    padding: 4px 14px 12px;
+  }
+
+  .span-details-label {
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+  }
+
+  .span-details pre {
+    max-height: 360px;
+    padding: 10px;
+    margin: 0;
+    overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.55;
+    word-break: break-all;
+    white-space: pre-wrap;
+    background: var(--el-fill-color-light);
   }
 
   .waterfall-track {

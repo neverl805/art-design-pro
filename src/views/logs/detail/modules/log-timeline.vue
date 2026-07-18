@@ -24,20 +24,32 @@
               <span>{{ log.module }}:{{ log.function }}:{{ log.line }}</span>
             </div>
             <ElButton
-              v-if="isLong(log.message)"
+              v-if="canExpand(log)"
               link
               type="primary"
-              size="small"
+              class="expand-button"
               @click="toggle(log.id)"
             >
-              {{ expanded[log.id] ? '收起' : '展开' }}
+              <ElTooltip :content="expanded[log.id] ? '收起详情' : '展开详情'" placement="top">
+                <Icon :icon="expanded[log.id] ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'" />
+              </ElTooltip>
             </ElButton>
           </div>
           <div
             class="event-message"
             :class="{ collapsed: isLong(log.message) && !expanded[log.id] }"
           >
-            {{ log.message }}
+            {{ displayMessage(log) }}
+          </div>
+          <div v-if="expanded[log.id]" class="event-details">
+            <div v-if="hasAttributes(log)" class="details-section">
+              <div class="details-label">解析字段</div>
+              <pre>{{ formatJson(log.attributes) }}</pre>
+            </div>
+            <div v-if="!isStructured(log)" class="details-section">
+              <div class="details-label">原始日志</div>
+              <pre>{{ log.raw_line }}</pre>
+            </div>
           </div>
         </div>
       </ElTimelineItem>
@@ -46,11 +58,32 @@
 </template>
 
 <script setup lang="ts">
+  import Icon from '@/components/core/base/art-svg-icon/index.vue'
+
   defineOptions({ name: 'LogTimeline' })
 
   defineProps<{ logs: Api.Logs.LogEntry[] }>()
   const expanded = ref<Record<number, boolean>>({})
   const isLong = (message: string) => message.length > 220
+  const structuredEvents = new Set(['request_payload', 'response_payload', 'hcaptcha_trace'])
+  const isStructured = (log: Api.Logs.LogEntry) => structuredEvents.has(log.event)
+  const hasAttributes = (log: Api.Logs.LogEntry) => Object.keys(log.attributes).length > 0
+  const canExpand = (log: Api.Logs.LogEntry) => isLong(log.message) || hasAttributes(log)
+  const displayMessage = (log: Api.Logs.LogEntry) => {
+    if (!isStructured(log)) return log.message
+    const labels: Record<string, string> = {
+      request_payload: '完整请求参数',
+      response_payload: '完整返回参数',
+      hcaptcha_trace: 'hCaptcha 指纹与执行快照'
+    }
+    return `${labels[log.event]} · ${formatBytes(new Blob([log.message]).size)}`
+  }
+  const formatJson = (value: unknown) => JSON.stringify(value, null, 2)
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`
+  }
   const formatDate = (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false })
   const toggle = (id: number) => {
     expanded.value[id] = !expanded.value[id]
@@ -159,5 +192,41 @@
     overflow: hidden;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
+  }
+
+  .expand-button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 18px;
+  }
+
+  .event-details {
+    margin-top: 10px;
+    border-top: 1px solid var(--el-border-color-lighter);
+  }
+
+  .details-section {
+    padding-top: 10px;
+  }
+
+  .details-label {
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
+  }
+
+  .details-section pre {
+    max-height: 520px;
+    padding: 10px;
+    margin: 0;
+    overflow: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.55;
+    word-break: break-all;
+    white-space: pre-wrap;
+    background: var(--el-fill-color-light);
   }
 </style>
