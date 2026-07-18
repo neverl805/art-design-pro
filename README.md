@@ -1,6 +1,6 @@
 # hCaptcha Monitor Frontend
 
-Vue 3 monitoring UI for the FastAPI service in `/Users/neverland/art_server`. The dashboard displays current Safari hCaptcha solve outcomes, latency, target hosts, token usage, source health, request search, and per-request event timelines. The Token management page polls the live SQLite ledger and supports creating, editing, enabling, disabling, and deleting masked Token records.
+Vue 3 monitoring UI for the FastAPI service in `/Users/neverland/art_server`. The dashboard displays current Safari hCaptcha solve outcomes, latency, target hosts, token usage, source health, request search, and per-request event timelines. The Token management page polls the live SQLite ledger, displays complete Token values, and supports creating, editing, enabling, disabling, and deleting records.
 
 ## Development
 

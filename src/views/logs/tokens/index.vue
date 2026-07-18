@@ -45,7 +45,11 @@
         row-key="token_id"
         empty-text="暂无 Token 记录"
       >
-        <ElTableColumn prop="token_hint" label="Token" width="120" />
+        <ElTableColumn label="Token" min-width="240">
+          <template #default="{ row }">
+            <span class="token-value">{{ row.token || row.token_hint }}</span>
+          </template>
+        </ElTableColumn>
         <ElTableColumn label="摘要 ID" min-width="150" show-overflow-tooltip>
           <template #default="{ row }">{{ compactId(row.token_id) }}</template>
         </ElTableColumn>
@@ -128,7 +132,7 @@
     <ElDialog v-model="editVisible" title="编辑 Token" width="min(520px, 92vw)" destroy-on-close>
       <ElForm label-position="top">
         <ElFormItem label="Token">
-          <ElInput :model-value="editing?.token_hint" disabled />
+          <ElInput :model-value="editing?.token || editing?.token_hint" disabled />
         </ElFormItem>
         <div class="form-grid">
           <ElFormItem label="剩余次数">
@@ -293,12 +297,16 @@
 
   const removeToken = async (record: Api.Logs.TokenRecord) => {
     try {
-      await ElMessageBox.confirm(`将删除 ${record.token_hint} 及其已结算记录。`, '删除 Token', {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger',
-        type: 'warning'
-      })
+      await ElMessageBox.confirm(
+        `将删除 ${record.token || record.token_hint} 及其已结算记录。`,
+        '删除 Token',
+        {
+          confirmButtonText: '删除',
+          cancelButtonText: '取消',
+          confirmButtonClass: 'el-button--danger',
+          type: 'warning'
+        }
+      )
       await deleteTokenRecord(record.token_id)
       await loadTokens()
       ElMessage.success('Token 已删除')
@@ -424,6 +432,11 @@
 
   .table-panel {
     min-height: 520px;
+  }
+
+  .token-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    word-break: break-all;
   }
 
   .form-grid {

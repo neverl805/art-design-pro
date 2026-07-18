@@ -25,7 +25,11 @@
       height="240"
       empty-text="暂无 token 数据"
     >
-      <ElTableColumn prop="token_hint" label="Token" min-width="110" />
+      <ElTableColumn label="Token" min-width="150">
+        <template #default="{ row }">
+          <span class="token-value">{{ row.token || row.token_hint }}</span>
+        </template>
+      </ElTableColumn>
       <ElTableColumn prop="remaining" label="剩余" width="80" align="right" />
       <ElTableColumn prop="used" label="已用" width="72" align="right" />
       <ElTableColumn prop="pending" label="预留" width="72" align="right" />
@@ -62,6 +66,11 @@
   .panel-title {
     font-size: 14px;
     font-weight: 600;
+  }
+
+  .token-value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    word-break: break-all;
   }
 
   .panel-actions {

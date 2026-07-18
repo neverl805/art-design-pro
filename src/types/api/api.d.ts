@@ -307,6 +307,7 @@ declare namespace Api {
     }
 
     interface TokenState {
+      token: string | null
       token_hint: string
       remaining: number
       used: number
@@ -325,6 +326,7 @@ declare namespace Api {
 
     interface TokenRecord {
       token_id: string
+      token: string | null
       token_hint: string
       remaining: number
       used: number
