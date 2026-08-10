@@ -43,8 +43,6 @@ import { useUserStore } from '@/store/modules/user'
 import { useMenuStore } from '@/store/modules/menu'
 import { setWorktab } from '@/utils/navigation'
 import { setPageTitle } from '@/utils/router'
-import { RoutesAlias } from '../routesAlias'
-import { staticRoutes } from '../routes/staticRoutes'
 import { loadingService } from '@/utils/ui'
 import { useCommon } from '@/hooks/core/useCommon'
 import { useWorktabStore } from '@/store/modules/worktab'
@@ -151,6 +149,15 @@ async function handleRouteGuard(
   }
 
   // ===== 已禁用登录功能，直接跳过登录检查 =====
+  //
+  // 这不是安全漏洞，但也不是安全措施：路由守卫跑在访客浏览器里，改它挡不住任何人。
+  // 真正的访问控制在 nginx —— 见 deploy/nginx/hcaptcha_monitor.conf，
+  // 它给 SPA 和 /api/ 同时加了 HTTP Basic 认证。
+  //
+  // 加固之前 /api/logs/* 对裸 curl 直接返回 200（包括 /api/logs/tokens 和
+  // 会删数据的 /api/logs/cleanup），把这里的登录改回来也拦不住那条路径。
+  // 所以：要收紧权限请改 nginx 配置，不要以为改这里就够了。
+  //
   // 自动设置为已登录状态（如果还未登录）
   if (!userStore.isLogin) {
     userStore.setToken('no-auth-mode')
@@ -195,43 +202,6 @@ async function handleRouteGuard(
 
   // 5. 未匹配到路由，跳转到 404
   next({ name: 'Exception404' })
-}
-
-/**
- * 处理登录状态（已禁用）
- * @returns true 表示可以继续，false 表示已处理跳转
- */
-function handleLoginStatus(
-  to: RouteLocationNormalized,
-  userStore: ReturnType<typeof useUserStore>,
-  next: NavigationGuardNext
-): boolean {
-  // 登录功能已禁用，始终返回 true
-  return true
-}
-
-/**
- * 检查路由是否为静态路由
- */
-function isStaticRoute(path: string): boolean {
-  const checkRoute = (routes: any[], targetPath: string): boolean => {
-    return routes.some((route) => {
-      // 处理动态路由参数匹配
-      const routePath = route.path
-      const pattern = routePath.replace(/:[^/]+/g, '[^/]+').replace(/\*/g, '.*')
-      const regex = new RegExp(`^${pattern}$`)
-
-      if (regex.test(targetPath)) {
-        return true
-      }
-      if (route.children && route.children.length > 0) {
-        return checkRoute(route.children, targetPath)
-      }
-      return false
-    })
-  }
-
-  return checkRoute(staticRoutes, path)
 }
 
 /**
