@@ -2,18 +2,26 @@
 
 ## Access control
 
-The panel and its API are public-facing and are gated by **HTTP Basic auth in nginx**, not by the application. See `nginx/hcaptcha_monitor.conf` for the config and the reasoning; the short version is that `src/router/guards/beforeEach.ts` deliberately skips the login check, and even if it did not, `/api/logs/*` is reachable directly with curl and would still have been open.
+The panel and its API are reachable only under the path prefix in `nginx/hcaptcha_monitor.conf` (`/hcp_solver/` at time of writing). HTTP Basic auth was removed on 2026-08-10 because it prompted on every poll; the prefix replaces it.
 
-Verified after each change — unauthenticated must be 401 on **both** the SPA and the API:
+The prefix covers the **API as well as the SPA**, and the bare `/api/` returns 404. That is the point: `src/router/guards/beforeEach.ts` skips the login check, and even if it did not, `/api/logs/*` is reachable directly with curl, so protecting only the panel protects nothing.
+
+Verified after each change — everything outside the prefix must be 404:
 
 ```sh
-curl -s -o /dev/null -w '%{http_code}\n' http://<host>/
-curl -s -o /dev/null -w '%{http_code}\n' http://<host>/api/logs/overview
-curl -s -o /dev/null -w '%{http_code}\n' -X POST http://<host>/api/logs/cleanup
-curl -s -o /dev/null -w '%{http_code}\n' -u user:pass http://<host>/api/logs/overview   # 200
+curl -s -o /dev/null -w '%{http_code}
+' http://<host>/                      # 404
+curl -s -o /dev/null -w '%{http_code}
+' http://<host>/api/logs/overview     # 404
+curl -s -o /dev/null -w '%{http_code}
+' -X POST http://<host>/api/logs/cleanup  # 404
+curl -s -o /dev/null -w '%{http_code}
+' http://<host>/hcp_solver/api/logs/overview  # 200
 ```
 
-Checking only the SPA is not enough: the API is the thing that actually serves the data.
+Checking only the SPA is not enough: the API is the thing that serves the data.
+
+**Changing the prefix means rebuilding.** `VITE_BASE_URL` and `VITE_API_URL` in `.env.production` are compiled into the asset and XHR paths; editing nginx alone gives a 404 on every asset.
 
 ## Known gaps
 
