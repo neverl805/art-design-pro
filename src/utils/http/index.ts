@@ -65,7 +65,13 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (request: InternalAxiosRequestConfig) => {
     const { accessToken } = useUserStore()
-    if (accessToken) request.headers.set('Authorization', accessToken)
+    // 登录已禁用时 accessToken 是占位符 'no-auth-mode'（见 router/guards/beforeEach.ts）。
+    // 把它当作 Authorization 发出去会覆盖浏览器为 nginx HTTP Basic 缓存的凭据，
+    // nginx 收到一个无效认证头就返回 401，浏览器于是反复弹认证框——
+    // 现象是「登录一次之后仍不断弹窗」，而静态资源（不走拦截器）一切正常。
+    if (accessToken && accessToken !== 'no-auth-mode') {
+      request.headers.set('Authorization', accessToken)
+    }
 
     if (request.data && !(request.data instanceof FormData) && !request.headers['Content-Type']) {
       request.headers.set('Content-Type', 'application/json')
