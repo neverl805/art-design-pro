@@ -54,6 +54,16 @@
         <ElDescriptionsItem label="语言 / 时区">
           {{ logGroup.fingerprint.locale || '--' }} · {{ logGroup.fingerprint.timezone || '--' }}
           <div class="match-row">
+            <!-- 配对池模式下语言/时区本就与出口地区不一致（这是服务端刻意为之的策略），
+                 因此后端不再下发 *_geo_match，这里改为显示来源，避免每一行都挂红色“偏离”。 -->
+            <ElTag
+              v-if="logGroup.fingerprint.geo_pair_source"
+              :type="logGroup.fingerprint.geo_pair_source === 'pool' ? 'success' : 'info'"
+              size="small"
+              effect="plain"
+            >
+              {{ logGroup.fingerprint.geo_pair_source === 'pool' ? '实测配对池' : '出口推导' }}
+            </ElTag>
             <ElTag
               v-if="logGroup.fingerprint.locale_geo_match != null"
               :type="logGroup.fingerprint.locale_geo_match ? 'success' : 'danger'"
@@ -90,18 +100,78 @@
           </div>
         </ElDescriptionsItem>
         <ElDescriptionsItem label="出口地区">
-          {{ logGroup.fingerprint.proxy_country || '--' }}
-          <template v-if="logGroup.fingerprint.proxy_city">
-            · {{ logGroup.fingerprint.proxy_city }}
+          <template v-if="logGroup.fingerprint.proxy_country">
+            {{ logGroup.fingerprint.proxy_country }}
+            <template v-if="logGroup.fingerprint.proxy_city">
+              · {{ logGroup.fingerprint.proxy_city }}
+            </template>
           </template>
+          <!-- 出口未被识别时后端不下发国家/时区（占位值会被误当成实测结果），这里说明原因。 -->
+          <span v-else class="muted">未识别（代理串未含地区标记，且未做网络查询）</span>
           <div class="muted">
             {{ logGroup.fingerprint.proxy_timezone || '--' }} ·
-            {{ logGroup.fingerprint.proxy_exit_ip || '--' }}
+            {{ logGroup.fingerprint.proxy_exit_ip || '--' }} · 来源
+            {{ logGroup.fingerprint.proxy_geo_source || '--' }}
           </div>
         </ElDescriptionsItem>
         <ElDescriptionsItem label="ASN / ISP">
           {{ logGroup.fingerprint.proxy_asn || '--' }} ·
           {{ logGroup.fingerprint.proxy_isp || '--' }}
+        </ElDescriptionsItem>
+      </ElDescriptions>
+
+      <ElDivider content-position="left">浏览器渲染身份</ElDivider>
+      <ElDescriptions :column="1" border size="small">
+        <ElDescriptionsItem label="Safari / 平台">
+          Safari {{ logGroup.fingerprint.safari_version || '--' }} ·
+          {{ logGroup.fingerprint.platform || '--' }}
+          <template v-if="logGroup.fingerprint.architecture">
+            ({{ logGroup.fingerprint.architecture }})
+          </template>
+          <div class="muted">
+            {{
+              logGroup.fingerprint.visible == null
+                ? '--'
+                : logGroup.fingerprint.visible
+                  ? '可见模式'
+                  : '隐形模式'
+            }}
+          </div>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="屏幕 / 视口">
+          {{ dimension(logGroup.fingerprint.screen_width, logGroup.fingerprint.screen_height) }}
+          · 视口
+          {{ dimension(logGroup.fingerprint.viewport_width, logGroup.fingerprint.viewport_height) }}
+          <div class="muted">
+            DPR {{ logGroup.fingerprint.device_scale_factor ?? '--' }} · 色深
+            {{ logGroup.fingerprint.color_depth ?? '--' }} · 触点
+            {{ logGroup.fingerprint.max_touch_points ?? '--' }}
+          </div>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="硬件">
+          {{ logGroup.fingerprint.hardware_concurrency ?? '--' }} 核 ·
+          <!-- 真实 Safari 不暴露 deviceMemory，缺失是正确的，不能显示成 0。 -->
+          {{
+            logGroup.fingerprint.device_memory_gb == null
+              ? '内存未暴露'
+              : logGroup.fingerprint.device_memory_gb + ' GB'
+          }}
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="设备指纹">
+          <div class="muted break-all">
+            canvas {{ logGroup.fingerprint.canvas_salt || '--' }} · webgl
+            {{ logGroup.fingerprint.webgl_render_salt || '--' }}
+            ({{ logGroup.fingerprint.webgl_unmasked_renderer || '--' }})
+          </div>
+          <div class="muted break-all">
+            audio {{ logGroup.fingerprint.audio_offline_render_value || '--' }} · worker stack
+            {{ logGroup.fingerprint.worker_stack_fingerprint || '--' }}
+          </div>
+        </ElDescriptionsItem>
+        <ElDescriptionsItem label="轨迹采样">
+          刷新 {{ logGroup.fingerprint.display_refresh_hz ?? '--' }} Hz · 指针
+          {{ logGroup.fingerprint.pointer_dispatch_hz ?? '--' }} Hz · 量化
+          {{ logGroup.fingerprint.timestamp_quantum_ms ?? '--' }} ms
         </ElDescriptionsItem>
       </ElDescriptions>
     </template>
@@ -117,6 +187,10 @@
   defineOptions({ name: 'LogInfo' })
 
   defineProps<{ logGroup: Api.Logs.LogGroup }>()
+
+  /** `1512 × 982`，任一边缺失就整体判为未知——半个尺寸比没有尺寸更容易被误读。 */
+  const dimension = (width: number | null, height: number | null) =>
+    width == null || height == null ? '--' : `${width} × ${height}`
 
   const outcomeLabel = (outcome: Api.Logs.RequestOutcome) =>
     ({

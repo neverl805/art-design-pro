@@ -209,8 +209,32 @@ declare namespace Api {
       proxy_exit_ip: string | null
       proxy_asn: string | null
       proxy_isp: string | null
+      /** `pool` = 语言/时区取自服务端实测配对池（默认）；`egress` = 由出口地区推导。 */
+      geo_pair_source: string | null
+      /** 仅在 `egress` 模式下有意义；配对池模式下为 null（与出口不一致是设计使然）。 */
       locale_geo_match: boolean | null
       timezone_geo_match: boolean | null
+      safari_version: string | null
+      visible: boolean | null
+      screen_width: number | null
+      screen_height: number | null
+      viewport_width: number | null
+      viewport_height: number | null
+      device_scale_factor: number | null
+      color_depth: number | null
+      hardware_concurrency: number | null
+      device_memory_gb: number | null
+      platform: string | null
+      architecture: string | null
+      max_touch_points: number | null
+      canvas_salt: string | null
+      webgl_render_salt: string | null
+      webgl_unmasked_renderer: string | null
+      audio_offline_render_value: string | null
+      worker_stack_fingerprint: string | null
+      display_refresh_hz: number | null
+      pointer_dispatch_hz: number | null
+      timestamp_quantum_ms: number | null
     }
 
     /** 日志组 */
