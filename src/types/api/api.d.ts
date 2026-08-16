@@ -241,6 +241,8 @@ declare namespace Api {
     interface LogGroup {
       request_id: string
       session_id: string
+      /** 由哪台节点服务的（189 / 154），对应后端 host 列与 host 过滤参数。 */
+      node: string | null
       count: number
       start_time: string
       end_time: string
@@ -257,6 +259,8 @@ declare namespace Api {
       upstream_requests: number | null
       direct: boolean | null
       token_hint: string | null
+      /** 完整 token，渲染时从账本解析；日志文件里只有脱敏的 token_hint。 */
+      token_value: string | null
       token_remaining: number | null
       token_used: number | null
       error: string | null

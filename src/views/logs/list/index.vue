@@ -37,6 +37,12 @@
             </ElTag>
           </template>
         </ElTableColumn>
+        <ElTableColumn prop="node" label="节点" width="82" align="center">
+          <template #default="{ row }">
+            <ElTag v-if="row.node" size="small" effect="plain" type="info">{{ row.node }}</ElTag>
+            <span v-else>--</span>
+          </template>
+        </ElTableColumn>
         <ElTableColumn prop="target_host" label="目标 Host" min-width="190" show-overflow-tooltip>
           <template #default="{ row }">{{ row.target_host || '--' }}</template>
         </ElTableColumn>

@@ -32,11 +32,24 @@
       <ElDescriptionsItem label="模式">
         {{ logGroup.direct == null ? '--' : logGroup.direct ? 'Direct' : 'Task' }}
       </ElDescriptionsItem>
+      <ElDescriptionsItem label="节点">
+        <ElTag v-if="logGroup.node" size="small" effect="plain" type="info">
+          {{ logGroup.node }}
+        </ElTag>
+        <span v-else>--</span>
+      </ElDescriptionsItem>
       <ElDescriptionsItem label="Token">
-        {{ logGroup.token_hint || '--' }}
+        <!-- 完整值：api_tokens 没有名称列，token 本身就是唯一能认出调用方的东西，
+             脱敏后缀在多个 token 尾部相同时根本区分不出是谁。 -->
+        <code class="break-all">{{ logGroup.token_value || logGroup.token_hint || '--' }}</code>
         <span v-if="logGroup.token_remaining != null" class="muted">
           · 剩余 {{ logGroup.token_remaining }}
         </span>
+        <!-- 账本里查不到（已删除，或后缀撞车无法唯一确定）时说明原因，
+             免得把一个脱敏值误读成完整 token。 -->
+        <div v-if="!logGroup.token_value && logGroup.token_hint" class="muted">
+          账本中未能唯一匹配，仅显示脱敏值
+        </div>
       </ElDescriptionsItem>
       <ElDescriptionsItem label="日志条数">{{ logGroup.count }}</ElDescriptionsItem>
     </ElDescriptions>
